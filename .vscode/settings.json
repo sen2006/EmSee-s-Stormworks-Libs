@@ -37,11 +37,11 @@
     ],
     "Lua.runtime.pathStrict": true,
     "Lua.workspace.library": [
-        "c:/Users/sen/Desktop/VS Code Lua Library/EmSee's Libs/RadarControl/",
+        "c:/Users/sen/Desktop/VS Code Lua Library/EmSee's Libs/",
         "c:/Users/sen/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Common/",
         "c:/Users/sen/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Microcontroller/",
         "C:/Users/sen/Desktop/VS Code Lua Library/EmSee's Libs/",
-        "c:/Users/sen/Desktop/VS Code Lua Library/EmSee's Libs/RadarControl/_build/libs/"
+        "c:/Users/sen/Desktop/VS Code Lua Library/EmSee's Libs/_build/libs/"
     ],
     "lifeboatapi.stormworks.libs.gitLibraries": [
         {

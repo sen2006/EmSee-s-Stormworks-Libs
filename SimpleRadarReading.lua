@@ -17,7 +17,7 @@ simpleRadarReading = {
 	---@return boolean isDetected if target is detected
 	readFromRadartoXYZ = function(selfX, selfY, selfZ, eulerX, eulerY, eulerZ, id, minimumDistance)
 		local DistanceTo = input.getNumber(1 + (id - 1) * 4)
-		local x, y, z = RadarGPS.radarPosToXYZ(selfX, selfY, selfZ, eulerX, eulerY, eulerZ,
+		local x, y, z = radarGPS.radarPosToXYZ(selfX, selfY, selfZ, eulerX, eulerY, eulerZ,
 			input.getNumber(2 + (id - 1) *
 				4), input.getNumber(3 + (id - 1) * 4), DistanceTo)
 
