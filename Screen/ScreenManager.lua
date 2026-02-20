@@ -1,6 +1,6 @@
-EmSeeLib.screenManager.__index = EmSeeLib.screenManager
+require("EmSee's Libs.util")
 
----@class screenManager
+---@class screenManager : BaseClass
 ---@field screenWidth number
 ---@field screenHeight number
 ---@field buttons table<number, simpleButton>
@@ -18,8 +18,7 @@ EmSeeLib.screenManager = {
 
     tick = function(self, isTouch, touchX, touchY, isTouch2, touchX2, touchY2)
         for i, button in pairs(self.buttons) do
-            button:checkPressed(isTouch, touchX, touchY)
-            button:checkPressed(isTouch2, touchX2, touchY2)
+            EmSeeLib.simpleButton.tick(button, isTouch, touchX, touchY, isTouch2, touchX2, touchY2)
         end
         for i, ticker in pairs(self.tickers) do
             ticker(self, isTouch, touchX, touchY, isTouch2, touchX2, touchY2)
@@ -37,20 +36,20 @@ EmSeeLib.screenManager = {
     addTickerFunction = function(self, func)
         self.tickers[#self.tickers + 1] = func
     end,
+    __index = EmSeeLib.screenManager
+}
 
 
-
-    --#region Constructor
+--#region Constructor
     ---@param width number
     ---@param height number
     ---@return screenManager
-    new = function(width, height)
-        local self = setmetatable({}, EmSeeLib.screenManager)
-
+    EmSeeLib.screenManager.new = function(width, height)
+        self={}
         self.screenWidth = width or 32
         self.screenHeight = height or 32
         self.buttons = {}
+        self.tickers = {}
 
         return self
     end
-}

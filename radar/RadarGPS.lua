@@ -12,34 +12,41 @@ EmSeeLibRadarGPS = {
     ---@return number x target x
     ---@return number y target y
     ---@return number z target z
-    radarPosToXYZ = function(selfX, selfY, selfZ, eulerX, eulerY, eulerZ, targetHeading, targetElevation,
-                             targetDistance)
-        local targetHeading = targetHeading * math.pi * 2
-        local targetElevation = targetElevation * math.pi * 2
+    radarPosTurnsToXYZ = function(selfX, selfY, selfZ, eulerX, eulerY, eulerZ, targetHeading, targetElevation, targetDistance
+    )
+        -- Convert radar angles from turns to radians
+        local heading   = targetHeading * math.pi * 2
+        local elevation = targetElevation * math.pi * 2
 
-        local cosX, sinX = math.cos(eulerX), math.sin(eulerX)
-        local cosY, sinY = math.cos(eulerY), math.sin(eulerY)
-        local cosZ, sinZ = math.cos(eulerZ), math.sin(eulerZ)
+        -- Radar-local (spherical → Cartesian)
+        local lx        = targetDistance * math.cos(elevation) * math.sin(heading)
+        local ly        = targetDistance * math.sin(elevation)
+        local lz        = targetDistance * math.cos(elevation) * math.cos(heading)
 
-        local localXOffset = targetDistance * math.cos(targetElevation) * -math.sin(-targetHeading)
-        local localYOffset = targetDistance * math.sin(targetElevation)
-        local localZOffset = targetDistance * math.cos(targetElevation) * math.cos(-targetHeading)
-        local m00 = cosY * cosZ
-        local m01 = -cosX * cosZ + sinX * sinY * cosZ
-        local m02 = sinX * sinZ + cosX * sinY * cosZ
+        -- Precompute trig
+        local cx, sx    = math.cos(eulerX), math.sin(eulerX)
+        local cy, sy    = math.cos(eulerY), math.sin(eulerY)
+        local cz, sz    = math.cos(eulerZ), math.sin(eulerZ)
 
-        local m10 = cosY * sinZ
-        local m11 = cosX * cosZ + sinX * sinY * sinZ
-        local m12 = -sinX * cosZ + cosX * sinY * sinZ
+        -- Yaw → Pitch → Roll rotation matrix (ZYX)
+        local m00       = cy * cz
+        local m01       = cz * sx * sy - cx * sz
+        local m02       = cx * cz * sy + sx * sz
 
-        local m20 = -sinY
-        local m21 = sinX * cosY
-        local m22 = cosX * cosY
+        local m10       = cy * sz
+        local m11       = sx * sy * sz + cx * cz
+        local m12       = cx * sy * sz - cz * sx
 
-        local xOffset = m00 * localXOffset + m01 * localYOffset + m02 * localZOffset
-        local yOffset = m10 * localXOffset + m11 * localYOffset + m12 * localZOffset
-        local zOffset = m20 * localXOffset + m21 * localYOffset + m22 * localZOffset
+        local m20       = -sy
+        local m21       = cy * sx
+        local m22       = cx * cy
 
+        -- Rotate local radar vector into world space
+        local xOffset   = m00 * lx + m01 * ly + m02 * lz
+        local yOffset   = m10 * lx + m11 * ly + m12 * lz
+        local zOffset   = m20 * lx + m21 * ly + m22 * lz
+
+        -- World position
         return selfX + xOffset, selfY + yOffset, selfZ + zOffset
     end,
 
@@ -56,35 +63,50 @@ EmSeeLibRadarGPS = {
     ---@return number heading target heading
     ---@return number elevation target elevation
     ---@return number distance target distance
-    XYZToHeadingElevationDistance = function(selfX, selfY, selfZ, eulerX, eulerY, eulerZ, targetX, targetY,
+    XYZToHeadingElevationDistanceTurns = function(selfX, selfY, selfZ, eulerX, eulerY, eulerZ, targetX, targetY,
                                              targetZ)
-        local xOffset = targetX - selfX
-        local yOffset = targetY - selfY
-        local zOffset = targetZ - selfZ
+        -- World offset
+        local wx = targetX - selfX
+        local wy = targetY - selfY
+        local wz = targetZ - selfZ
 
-        local cosX, sinX = math.cos(eulerX), math.sin(eulerX)
-        local cosY, sinY = math.cos(eulerY), math.sin(eulerY)
-        local cosZ, sinZ = math.cos(eulerZ), math.sin(eulerZ)
+        -- Precompute trig
+        local cx, sx = math.cos(eulerX), math.sin(eulerX)
+        local cy, sy = math.cos(eulerY), math.sin(eulerY)
+        local cz, sz = math.cos(eulerZ), math.sin(eulerZ)
 
-        local m00 = cosY * cosZ
-        local m01 = -cosX * sinZ + sinX * sinY * cosZ
-        local m02 = sinX * sinZ + cosX * sinY * cosZ
+        -- Same rotation matrix as forward function
+        local m00 = cy * cz
+        local m01 = cz * sx * sy - cx * sz
+        local m02 = cx * cz * sy + sx * sz
 
-        local m10 = cosY * sinZ
-        local m11 = cosX * cosZ + sinX * sinY * sinZ
-        local m12 = -sinX * cosZ + cosX * sinY * sinZ
+        local m10 = cy * sz
+        local m11 = sx * sy * sz + cx * cz
+        local m12 = cx * sy * sz - cz * sx
 
-        local m20 = -sinY
-        local m21 = sinX * cosY
-        local m22 = cosX * cosY
+        local m20 = -sy
+        local m21 = cy * sx
+        local m22 = cx * cy
 
-        local localX = m00 * xOffset + m10 * yOffset + m20 * zOffset
-        local localY = m01 * xOffset + m11 * yOffset + m21 * zOffset
-        local localZ = m02 * xOffset + m12 * yOffset + m22 * zOffset
+        -- Inverse rotation = transpose
+        local lx = m00 * wx + m10 * wy + m20 * wz
+        local ly = m01 * wx + m11 * wy + m21 * wz
+        local lz = m02 * wx + m12 * wy + m22 * wz
 
-        local targetDistance = math.sqrt(localX * localX + localY * localY + localZ * localZ)
-        local targetElevation = math.asin(localY / targetDistance)
-        local targetHeading = math.atan(-localX, localZ)
-        return targetHeading, targetElevation, targetDistance
+        -- Distance
+        local distance = math.sqrt(lx * lx + ly * ly + lz * lz)
+        if distance == 0 then
+            return 0, 0, 0
+        end
+
+        -- Elevation & heading
+        local elevation = math.asin(ly / distance)
+        local heading   = math.atan(lx, lz)
+
+        -- Convert radians → turns (0–1)
+        heading         = heading / (math.pi * 2)
+        elevation       = elevation / (math.pi * 2)
+
+        return heading, elevation, distance
     end
 }
